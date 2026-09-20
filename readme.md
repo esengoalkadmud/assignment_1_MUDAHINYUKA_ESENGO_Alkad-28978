@@ -17,16 +17,16 @@ Instructor: Eric Maniraguha
 ### Business Scenario
 This project is based on a SuperMarket business that sells various products to customers. Management wants to understand who their customers are, what they are buying, and how sales are trending over time. I built this database and wrote queries to answer those business questions.
 
-### Data Challenges
-Although sales data is recorded daily, management does not have clear reports showing which products sell the most or which customers contribute the most revenue. It is also difficult to track how sales change over time.
 
-### Expected Outcome
-The analysis should help identify top selling products, understand customer purchasing behavior, and track sales trends to support better business decisions.
+### Outcome
+The DB should help identify top selling products, understand customer purchasing behavior, and track sales trends to support better business decisions.
 
 
 ## 2. Success Criteria
 
-1. Identify top-selling producAG()**
+1. Identify top-selling products using **RANK()**
+2. Calculate cumulative sales totals using **SUM() OVER()**
+3. Analyze sales changes between transactions using **LAG()**
 4. Segment customers into revenue groups using **NTILE(4)**
 5. Calculate moving average sales using **AVG() OVER()**
 
