@@ -1,130 +1,65 @@
 param(
     [switch]$Watch,
     [switch]$RunOnce,
-    [int]$DebounceSeconds = 2,
     [string]$Branch = "main",
     [string]$CommitMessage = "Auto commit"
 )
 
-$ErrorActionPreference = 'Stop'
+$repoRoot = git rev-parse --show-toplevel 2>$null
+if (-not $repoRoot) { throw "This folder is not a Git repository." }
 
-function Invoke-GitCommitPush {
-    param(
-        [string]$RepoRoot,
-        [string]$Message,
-        [string]$TargetBranch
-    )
-
-    $status = git -C $RepoRoot status --porcelain
+function Invoke-AutoPush {
+    $status = git -C $repoRoot status --porcelain
     if ([string]::IsNullOrWhiteSpace($status)) {
         Write-Host "No changes to commit."
         return
     }
 
-    Write-Host "Changes detected. Staging files..."
-    git -C $RepoRoot add .
-
+    git -C $repoRoot add .
     $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
-    $finalMessage = if ($Message -eq 'Auto commit') { "$Message - $timestamp" } else { $Message }
+    $msg = if ($CommitMessage -eq 'Auto commit') { "Auto commit - $timestamp" } else { $CommitMessage }
 
-    try {
-        git -C $RepoRoot commit -m $finalMessage | Out-Host
-    }
-    catch {
-        Write-Host "Commit failed or there was nothing to commit."
-        return
-    }
-
-    Write-Host "Pushing to origin/$TargetBranch..."
-    git -C $RepoRoot push origin $TargetBranch
+    git -C $repoRoot commit -m $msg | Out-Host
+    git -C $repoRoot pull --rebase origin $Branch | Out-Host
+    git -C $repoRoot push origin $Branch | Out-Host
     Write-Host "Push complete."
 }
 
-$repoRoot = git rev-parse --show-toplevel 2>$null
-if (-not $repoRoot) {
-    throw "This folder is not a Git repository."
-}
-
 if ($RunOnce) {
-    Invoke-GitCommitPush -RepoRoot $repoRoot -Message $CommitMessage -TargetBranch $Branch
+    Invoke-AutoPush
     exit 0
 }
 
 if (-not $Watch) {
-    Write-Host "Use -Watch to monitor changes, or -RunOnce to commit current changes once."
+    Write-Host "Use -Watch or -RunOnce."
     exit 0
 }
 
-Write-Host "Watching for file changes in: $repoRoot"
-Write-Host "Press Ctrl+C to stop."
-
-$filter = '*'
+Write-Host "Watching $repoRoot ..."
 $watcher = New-Object System.IO.FileSystemWatcher
 $watcher.Path = $repoRoot
 $watcher.IncludeSubdirectories = $true
 $watcher.EnableRaisingEvents = $true
-$watcher.Filter = $filter
+$watcher.Filter = '*'
 
-$lastEvent = [DateTime]::MinValue
-$locker = [System.Threading.Mutex]::new($false, 'AutoCommitMutex')
+$syncLock = [System.Threading.Mutex]::new($false, 'AutoPushLock')
 
-Register-ObjectEvent -InputObject $watcher -EventName 'Changed' -Action {
-    $now = Get-Date
-    if (($now - $lastEvent).TotalSeconds -lt $DebounceSeconds) { return }
-    $lastEvent = $now
-
+Register-ObjectEvent -InputObject $watcher -EventName Changed -Action {
     try {
-        $locker.WaitOne() | Out-Null
-        Start-Sleep -Seconds $DebounceSeconds
-        $status = git -C $repoRoot status --porcelain
-        if (-not [string]::IsNullOrWhiteSpace($status)) {
-            Write-Host "Detected file change at $($now.ToString('yyyy-MM-dd HH:mm:ss'))."
-            Invoke-GitCommitPush -RepoRoot $repoRoot -Message $CommitMessage -TargetBranch $Branch
-        }
+        $syncLock.WaitOne() | Out-Null
+        Start-Sleep -Seconds 2
+        Invoke-AutoPush
     }
-    finally {
-        $locker.ReleaseMutex()
-    }
+    finally { $syncLock.ReleaseMutex() }
 } | Out-Null
 
-Register-ObjectEvent -InputObject $watcher -EventName 'Created' -Action {
-    $now = Get-Date
-    if (($now - $lastEvent).TotalSeconds -lt $DebounceSeconds) { return }
-    $lastEvent = $now
-
+Register-ObjectEvent -InputObject $watcher -EventName Created -Action {
     try {
-        $locker.WaitOne() | Out-Null
-        Start-Sleep -Seconds $DebounceSeconds
-        $status = git -C $repoRoot status --porcelain
-        if (-not [string]::IsNullOrWhiteSpace($status)) {
-            Write-Host "Detected file creation at $($now.ToString('yyyy-MM-dd HH:mm:ss'))."
-            Invoke-GitCommitPush -RepoRoot $repoRoot -Message $CommitMessage -TargetBranch $Branch
-        }
+        $syncLock.WaitOne() | Out-Null
+        Start-Sleep -Seconds 2
+        Invoke-AutoPush
     }
-    finally {
-        $locker.ReleaseMutex()
-    }
+    finally { $syncLock.ReleaseMutex() }
 } | Out-Null
 
-Register-ObjectEvent -InputObject $watcher -EventName 'Deleted' -Action {
-    $now = Get-Date
-    if (($now - $lastEvent).TotalSeconds -lt $DebounceSeconds) { return }
-    $lastEvent = $now
-
-    try {
-        $locker.WaitOne() | Out-Null
-        Start-Sleep -Seconds $DebounceSeconds
-        $status = git -C $repoRoot status --porcelain
-        if (-not [string]::IsNullOrWhiteSpace($status)) {
-            Write-Host "Detected file deletion at $($now.ToString('yyyy-MM-dd HH:mm:ss'))."
-            Invoke-GitCommitPush -RepoRoot $repoRoot -Message $CommitMessage -TargetBranch $Branch
-        }
-    }
-    finally {
-        $locker.ReleaseMutex()
-    }
-} | Out-Null
-
-while ($true) {
-    Start-Sleep -Seconds 5
-}
+while ($true) { Start-Sleep -Seconds 5 }

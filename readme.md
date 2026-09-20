@@ -26,9 +26,7 @@ The analysis should help identify top selling products, understand customer purc
 
 ## 2. Success Criteria
 
-1. Identify top-selling products using **RANK()**
-2. Calculate cumulative sales totals using **SUM() OVER()**
-3. Analyze sales changes between transactions using **LAG()**
+1. Identify top-selling producAG()**
 4. Segment customers into revenue groups using **NTILE(4)**
 5. Calculate moving average sales using **AVG() OVER()**
 
