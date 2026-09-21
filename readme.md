@@ -30,7 +30,8 @@ The DB should help identify top selling products, understand customer purchasing
 **Explanation:** SELECT o.order_id, c.customer_name, c.city, o.order_date
 FROM orders o
 INNER JOIN customers c ON o.customer_id = c.customer_id;.This query uses an INNER JOIN to connect the orders table and the customers table on the customer_id. It shows us who placed each order and where they live.
-![Screenshot](E:\11-Notes\PLSQL\1ST PRJ\images/1.png)
+<img width="743" height="745" alt="1" src="https://github.com/user-attachments/assets/ce35cd4a-0849-4cfb-9d99-06e548a0847b" />
+
 
 ### Query 2: List every order item with product name, category, price, and quantity (JOIN)
 **Explanation:** [Write 1 sentence in your own words. Example: This joins the order_items table with the products table so we can see exactly what products were bought in each order, along with their price and category.]
