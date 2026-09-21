@@ -151,5 +151,5 @@ Pgadmin4 Window Functions Documentation
 ---
 
 ## Integrity Statement
-All sources were properly cited. Implementations and analysis represent original work. No AI generated content was copied without attribution or adaptation. <br><br>
+All sources were properly cited. Implementations and analysis represent original work. No AI generated content was copied without attribution or adaptation. <br>
 ## **And sorry for Some unnecessary file created  on this repository, Am new on this platform, am trying things and things - - -Thanks!!!**
